@@ -109,7 +109,7 @@ function rites() { const cv = $$('[data-rite]'), live = new Set(), W = 500, H = 
 async function load() {
   api('config').then(c => { CONFIG = c; if (c.test) document.body.insertAdjacentHTML('beforeend', '<div class="test-badge">LOCAL TEST DATA</div>');
     const L = []; if (c.ca) L.push(`<button class="btn ghost" data-ca="${esc(c.ca)}">CA ${short(c.ca)}</button>`, `<a class="btn ghost" href="https://pump.fun/coin/${esc(c.ca)}" target="_blank" rel="noopener">buy</a>`); if (c.x) L.push(`<a class="btn ghost" href="${esc(c.x)}" target="_blank" rel="noopener">𝕏</a>`); $('#links').innerHTML = L.join(''); }).catch(() => { });
-  loadLog(); loadBoard(); loadWall(); picks(); setInterval(() => { if (!document.hidden) loadLog(); }, 30000); }
+  loadLog(); loadBoard(); loadWall(); picks(); faiths(); setInterval(() => { if (!document.hidden) loadLog(); }, 30000); }
 document.addEventListener('click', e => { const b = e.target.closest('[data-ca]'); if (b) copy(b.dataset.ca, 'contract address copied'); const m = e.target.closest('[data-cult]'); if (m) { e.preventDefault(); openCult(m.dataset.cult); } });
 
 async function loadLog(fresh) { const tk = $('#ticker'), tr = $('.track', tk);
@@ -136,8 +136,21 @@ async function loadWall(fresh) { const S = $('#stones');
     S.innerHTML = j.list.slice(0, 120).map(v => `<div class="stone"><b>${short(v.w)}</b>swore ${big(v.ui)} for ${v.days} days<br>${v.never ? 'never held it' : v.day ? `broke on day ${v.day}` : 'broke it'}${v.brokeAt ? ' · ' + ago(v.brokeAt) : ''}<div class="c">${icon(v.coin)}<span>${v.coin && v.coin.symbol ? '$' + esc(v.coin.symbol) : short(v.mint)}</span></div><div style="margin-top:8px"><a href="https://solscan.io/tx/${esc(v.brokeSig || v.sig)}" target="_blank" rel="noopener">proof</a></div></div>`).join(''); }
   catch (e) { S.innerHTML = `<div class="empty">the chain is not answering right now.<br>${esc(e.message)}</div>`; } }
 
+// ---------------------------------------------------------------- the congregations: real pump.fun coins
+const ringSmall = '<svg viewBox="0 0 1000 1000">' + Array.from({ length: 12 }, (_, k) => BAR(k)).join('') + '</svg>';
+const pic = c => c.icon ? `<img src="${esc(c.icon)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph'}))">` : '<span class="ph"></span>';
+const ch = x => x == null ? '' : `<span class="${x >= 0 ? 'up' : 'dn'}">${x >= 0 ? '+' : ''}${nf(x, 1)}%</span>`;
+const usd = n => n == null ? '' : '$' + big(n);
+async function faiths() { const H = $('#hall'), R1 = $('#rising'), R2 = $('#rising2');
+  api('hall').then(L => { if (!L.length) { H.innerHTML = '<div class="f-empty" style="grid-column:1/-1">the chain is quiet right now.</div>'; return; }
+    H.innerHTML = L.slice(0, 10).map(c => `<div class="fc" data-cult="${esc(c.mint)}"><div class="pic">${pic(c)}${ringSmall}</div><b>$${esc(c.symbol)}</b><span class="nm2">${esc(c.name || '')}</span><span class="hc">${big(c.holders)}</span><span class="hl">holders</span><span class="mc">${usd(c.mcap)} ${ch(c.ch24)}</span></div>`).join('');
+    if (window.gsap && !reduced) gsap.from($$('.fc', H), { y: 50, opacity: 0, duration: 1, ease: 'expo.out', stagger: .06, scrollTrigger: { trigger: H, start: 'top 85%' } }); }).catch(() => { H.innerHTML = '<div class="f-empty" style="grid-column:1/-1">the chain is not answering right now.</div>'; });
+  api('trending').then(L => { if (!L.length) { $('.f-rows').innerHTML = '<div class="f-empty">nothing is rising right now.</div>'; return; }
+    const pill = c => `<div class="fr" data-cult="${esc(c.mint)}">${pic(c)}<div style="text-align:left"><b>$${esc(c.symbol)}</b><br><span>${big(c.holders)} holders · ${usd(c.mcap)} ${ch(c.ch24)}</span></div></div>`;
+    const fill = X => { let set = X.map(pill).join(''), n = X.length; while (n < 14) { set += X.map(pill).join(''); n += X.length; } return set + set; }; const a = L.filter((_, i) => i % 2 === 0), b = L.filter((_, i) => i % 2 === 1); R1.innerHTML = fill(a); R2.innerHTML = fill(b.length ? b : a); }).catch(() => { $('.f-rows').innerHTML = '<div class="f-empty">the chain is not answering right now.</div>'; }); }
+
 // ---------------------------------------------------------------- census
-async function picks() { try { const L = await api('trending'); $('#picks').innerHTML = L.map(t => `<button class="pick" data-pick="${esc(t.mint)}">${icon(t)}${esc(t.symbol)}</button>`).join(''); } catch { } }
+async function picks() { try { const L = await api('trending'); $('#picks').innerHTML = L.slice(0, 8).map(t => `<button class="pick" data-pick="${esc(t.mint)}">${icon(t)}${esc(t.symbol)}</button>`).join(''); } catch { } }
 document.addEventListener('click', e => { const p = e.target.closest('[data-pick]'); if (p) { $('#censusMint').value = p.dataset.pick; runCensus(); } });
 $('#censusForm').onsubmit = e => { e.preventDefault(); runCensus(); };
 let cong = null;
@@ -236,8 +249,8 @@ function renderCult(c) { const B = $('#cultBody'), name = c.coin && c.coin.symbo
   const lbl = k => { const m = circle[k]; if (!m) return ''; const a = (k * 30 - 90) * Math.PI / 180, r = 425 + (k ? 0 : 30); return `<text x="${500 + Math.cos(a) * r}" y="${500 + Math.sin(a) * r + 8}" text-anchor="middle"${k ? '' : ' style="fill:#3ef08a"'}>${short(m.w)}</text>`; };
   B.innerHTML = `<div class="c-head">${icon(c.coin, '')}<h2>${esc(name)}</h2>${c.coin && c.coin.name ? `<p class="dim">${esc(c.coin.name)}</p>` : ''}<span class="mint" data-copy="${esc(c.mint)}">${esc(c.mint)}</span></div>
     <div class="circle"><svg viewBox="0 0 1000 1000">${Array.from({ length: 12 }, (_, k) => slot(k)).join('')}${Array.from({ length: 12 }, (_, k) => lbl(k)).join('')}</svg><div class="mid"><b>${nf(c.believers, 0)}</b><span>believers</span></div></div>
-    <p class="dim" style="font-size:12px">${c.prophet ? `the prophet: <span class="g">${short(c.prophet)}</span> · ` : ''}${circle.length}/12 seats in the circle</p>
-    <div class="stats">${[[pct(c.sworn), 'supply sworn'], [nf(c.faith, 2), 'faith'], [nf(c.kept, 0), 'vows kept'], [nf(c.apostates, 0), 'apostates'], [nf(c.vows, 0), 'vows'], [nf(c.faithful, 0), 'faithful'], [nf(c.blessed, 3) + ' SOL', 'blessed'], [c.first ? ago(c.first) : '—', 'first vow']].map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+    <p class="dim" style="font-size:12px">${c.prophet ? `the prophet: <span class="g">${short(c.prophet)}</span> · ${circle.length}/12 seats in the circle` : `${c.coin && c.coin.holders ? big(c.coin.holders) + ' holders. ' : ''}nobody has sworn yet. the first vow takes the prophet's seat.`}</p>
+    <div class="stats">${[[c.coin && c.coin.holders != null ? big(c.coin.holders) : '—', 'holders'], [pct(c.sworn), 'supply sworn'], [nf(c.faith, 2), 'faith'], [nf(c.kept, 0), 'vows kept'], [nf(c.apostates, 0), 'apostates'], [nf(c.vows, 0), 'vows'], [nf(c.blessed, 3) + ' SOL', 'blessed'], [c.first ? ago(c.first) : '—', 'first vow']].map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('')}</div>
     <div class="row center"><button class="btn" data-act="vow">take a vow in ${esc(name)}</button><button class="btn ghost" data-act="bless">bless ${esc(name)}</button><button class="btn ghost" data-act="census">count holders</button></div>
     <div class="c-tabs"><button class="on" data-tab="members">members</button><button data-tab="vows">vows</button><button data-tab="blessings">blessings</button></div><div id="cTab"></div>`;
   const tabs = { members: () => c.list.length ? '<div class="mem th"><span>#</span><span>wallet</span><span>rank</span><span>days</span><span>faith</span><span>blessed</span></div>' + c.list.map(m => `<div class="mem"><span class="dim">${m.place || '—'}</span><span>${short(m.w)}</span><span><span class="rk ${m.circle || m.rank}">${m.circle === 'prophet' ? 'the prophet' : m.circle === 'twelve' ? 'the twelve' : m.rank}</span></span><span>${nf(m.days, 1)}</span><span>${nf(m.faith, 3)}</span><span>${nf(m.blessed, 4)}</span></div>`).join('') : `<div class="empty">${ringEmpty}<span>this cult has no vows yet. the first one makes you its prophet.</span></div>`,
