@@ -10,7 +10,8 @@ const big = n => n == null ? '—' : n >= 1e9 ? nf(n / 1e9, 2) + 'B' : n >= 1e6 
 const pct = (x, d = 2) => x == null ? '—' : (x * 100 < .01 && x > 0 ? '<0.01' : nf(x * 100, d)) + '%';
 const ago = s => { const d = Date.now() / 1000 - s; return d < 90 ? 'just now' : d < 5400 ? Math.round(d / 60) + 'm ago' : d < 129600 ? Math.round(d / 3600) + 'h ago' : Math.round(d / 86400) + 'd ago'; };
 const sym = c => c && c.symbol ? '$' + esc(c.symbol) : 'a coin';
-const icon = (c, cls = 'ico') => c && c.icon ? `<img class="${cls}" src="${esc(c.icon)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">` : `<span class="${cls}"></span>`;
+const icon = (c, cls = 'ico') => c && c.icon ? `<img class="${cls}" src="${esc(IMG(c.icon))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">` : `<span class="${cls}"></span>`;
+const IMG = u => u ? (/^data:/.test(u) ? u : API + '?a=img&u=' + encodeURIComponent(u)) : '';
 const isMint = s => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(s || '').trim());
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 async function api(a, q = {}, body) { const u = API + '?a=' + a + Object.entries(q).filter(([, v]) => v != null).map(([k, v]) => '&' + k + '=' + encodeURIComponent(v)).join('');
@@ -138,7 +139,7 @@ async function loadWall(fresh) { const S = $('#stones');
 
 // ---------------------------------------------------------------- the congregations: real pump.fun coins
 const ringSmall = '<svg viewBox="0 0 1000 1000">' + Array.from({ length: 12 }, (_, k) => BAR(k)).join('') + '</svg>';
-const pic = c => c.icon ? `<img src="${esc(c.icon)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph'}))">` : '<span class="ph"></span>';
+const pic = c => c.icon ? `<img src="${esc(IMG(c.icon))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph'}))">` : '<span class="ph"></span>';
 const ch = x => x == null ? '' : `<span class="${x >= 0 ? 'up' : 'dn'}">${x >= 0 ? '+' : ''}${nf(x, 1)}%</span>`;
 const usd = n => n == null ? '' : '$' + big(n);
 async function faiths() { const H = $('#hall'), R1 = $('#rising'), R2 = $('#rising2');
@@ -157,7 +158,7 @@ let cong = null;
 async function runCensus() { const m = $('#censusMint').value.trim(), out = $('#censusOut'); if (!isMint(m)) return toast('paste a coin address');
   const btn = $('#censusForm .btn'); btn.disabled = true; btn.textContent = 'counting…';
   try { const [c, cu] = await Promise.all([api('census', { mint: m }), api('cult', { mint: m }).catch(() => null)]); out.hidden = false;
-    $('#cgMid').innerHTML = `${c.coin.icon ? `<img src="${esc(c.coin.icon)}" alt="" referrerpolicy="no-referrer">` : ''}<b>${nf(c.holders, 0)}</b><span>${c.coin.symbol ? '$' + esc(c.coin.symbol) + ' · ' : ''}holders</span>`;
+    $('#cgMid').innerHTML = `${c.coin.icon ? `<img src="${esc(IMG(c.coin.icon))}" alt="" referrerpolicy="no-referrer">` : ''}<b>${nf(c.holders, 0)}</b><span>${c.coin.symbol ? '$' + esc(c.coin.symbol) + ' · ' : ''}holders</span>`;
     $('#censusStats').innerHTML = [[nf(c.holders, 0), 'holders'], [pct(c.top10, 1), 'top 10 hold'], [nf(c.tiers.whale, 0), 'whales ≥1%'], [cu ? nf(cu.believers, 0) : '—', 'sworn believers'], [pct(c.top1, 2), 'largest wallet'], [nf(c.tiers.shrimp, 0), 'shrimp <0.01%'], [cu ? nf(cu.apostates, 0) : '—', 'apostates'], [(c.ms / 1000).toFixed(1) + 's', 'read in']].map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
     $('#openCult').dataset.cult = c.mint; drawCong(c); if (lenis) lenis.scrollTo(out, { offset: -80 }); }
   catch (e) { toast(e.message); } finally { btn.disabled = false; btn.textContent = 'count'; } }
