@@ -25,7 +25,7 @@ $$('[data-ring]').forEach(s => { s.innerHTML = Array.from({ length: 12 }, (_, k)
 const ringEmpty = '<svg class="ring" viewBox="0 0 1000 1000">' + Array.from({ length: 12 }, (_, k) => BAR(k)).join('') + '</svg>';
 
 // ---------------------------------------------------------------- the intro
-let lenis = null, CONFIG = {}, WALLET = null;
+let lenis = null, CONFIG = {}, WALLET = null, PF = Promise.resolve([]);
 const intro = $('#intro'); let introApi = null, entered = false;
 function finishIntro() { if (entered) return; entered = true; intro.classList.add('gone'); document.body.classList.remove('intro-on'); setTimeout(() => { if (introApi) introApi.dispose(); intro.remove(); }, 700); startSite(); }
 function leave() { if (!introApi) return finishIntro(); intro.classList.add('out'); introApi.exit(finishIntro); setTimeout(finishIntro, 2200); }
@@ -110,7 +110,7 @@ function rites() { const cv = $$('[data-rite]'), live = new Set(), W = 500, H = 
 async function load() {
   api('config').then(c => { CONFIG = c; if (c.test) document.body.insertAdjacentHTML('beforeend', '<div class="test-badge">LOCAL TEST DATA</div>');
     const L = []; if (c.ca) L.push(`<button class="btn ghost" data-ca="${esc(c.ca)}">CA ${short(c.ca)}</button>`, `<a class="btn ghost" href="https://pump.fun/coin/${esc(c.ca)}" target="_blank" rel="noopener">buy</a>`); if (c.x) L.push(`<a class="btn ghost" href="${esc(c.x)}" target="_blank" rel="noopener">𝕏</a>`); $('#links').innerHTML = L.join(''); }).catch(() => { });
-  loadLog(); loadBoard(); loadWall(); picks(); faiths(); setInterval(() => { if (!document.hidden) loadLog(); }, 30000); }
+  PF = api('pumpfun').catch(() => []); loadLog(); loadBoard(); loadWall(); picks(); faiths(); orbit(); pfTable(); setInterval(() => { if (!document.hidden) loadLog(); }, 30000); }
 document.addEventListener('click', e => { const b = e.target.closest('[data-ca]'); if (b) copy(b.dataset.ca, 'contract address copied'); const m = e.target.closest('[data-cult]'); if (m) { e.preventDefault(); openCult(m.dataset.cult); } });
 
 async function loadLog(fresh) { const tk = $('#ticker'), tr = $('.track', tk);
@@ -125,7 +125,8 @@ async function loadLog(fresh) { const tk = $('#ticker'), tr = $('.track', tk);
 async function loadBoard(fresh) { const T = $('#boardTable'), tot = $('#totals');
   try { const j = await api('board', fresh ? { fresh: 1 } : {}), t = j.totals;
     tot.innerHTML = [['cults', t.cults], ['vows', t.vows], ['believers', t.believers], ['kept', t.kept], ['apostates', t.apostates]].map(([k, v]) => `<div class="stat"><b data-count="${v}">${nf(v, 0)}</b><span>${k}</span></div>`).join('');
-    if (!j.cults.length) { T.innerHTML = `<div class="empty">${ringEmpty}<span>no cult has a vow yet. take the first one and yours is on top.</span><a class="btn sm" href="#vow" data-go="vow">take a vow</a></div>`; return; }
+    if (!j.cults.length) { T.innerHTML = `<div class="empty">${ringEmpty}<span>no cult has a vow yet. the first vow puts its coin on top.</span><a class="btn sm" href="#vow" data-go="vow">take a vow</a></div>`;
+      PF.then(L => { if (!L.length) return; T.insertAdjacentHTML('beforeend', '<div style="padding:0 18px 22px"><p class="dim" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-align:center">waiting for a prophet</p><div class="unsworn">' + L.slice(0, 6).map(c => `<div class="pr" data-cult="${esc(c.mint)}">${pic(c)}<span class="t"><b>$${esc(c.symbol)}</b><small>${big(c.holders)} holders · 0 sworn</small></span><span class="mc">${usd(c.mcap)}</span><span class="g" style="font-size:12px">be the first ›</span></div>`).join('') + '</div></div>'); }); return; }
     T.innerHTML = '<div class="tr th"><span>#</span><span style="text-align:left">cult</span><span>believers</span><span>sworn</span><span>faith</span><span>apostates</span><span>blessed</span><span></span></div>' +
       j.cults.map((c, i) => `<div class="tr" data-cult="${esc(c.mint)}"><span>${String(i + 1).padStart(2, '0')}</span><span class="nm">${icon(c.coin)}<b>${c.coin.symbol ? '$' + esc(c.coin.symbol) : short(c.mint)}</b></span><span>${nf(c.believers, 0)}</span><span>${pct(c.sworn)}</span><span>${nf(c.faith, 2)}</span><span>${nf(c.apostates, 0)}</span><span>${nf(c.blessed, 3)}</span><span class="go">›</span></div>`).join('');
     counters(tot); }
@@ -149,6 +150,23 @@ async function faiths() { const H = $('#hall'), R1 = $('#rising'), R2 = $('#risi
   api('trending').then(L => { if (!L.length) { $('.f-rows').innerHTML = '<div class="f-empty">nothing is rising right now.</div>'; return; }
     const pill = c => `<div class="fr" data-cult="${esc(c.mint)}">${pic(c)}<div style="text-align:left"><b>$${esc(c.symbol)}</b><br><span>${big(c.holders)} holders · ${usd(c.mcap)} ${ch(c.ch24)}</span></div></div>`;
     const fill = X => { let set = X.map(pill).join(''), n = X.length; while (n < 14) { set += X.map(pill).join(''); n += X.length; } return set + set; }; const a = L.filter((_, i) => i % 2 === 0), b = L.filter((_, i) => i % 2 === 1); R1.innerHTML = fill(a); R2.innerHTML = fill(b.length ? b : a); }).catch(() => { $('.f-rows').innerHTML = '<div class="f-empty">the chain is not answering right now.</div>'; }); }
+
+// the orbit: the twelve biggest pump.fun congregations circle the mark, the biggest on top in green, like the mark itself
+async function orbit() { const L = (await PF).slice(0, 12), box = $('#orbit'), hero = $('.hero'); if (L.length < 6 || !box) return;
+  box.innerHTML = L.map((c, k) => `<button class="orb${k ? '' : ' first'}" data-cult="${esc(c.mint)}" title="$${esc(c.symbol)} · ${big(c.holders)} holders">${pic(c)}<span>$${esc(c.symbol)}</span></button>`).join('');
+  const orbs = $$('.orb', box), n = orbs.length; let rot = 0, last = performance.now(), live = true, hover = false;
+  new IntersectionObserver(e => live = e[0].isIntersecting).observe(hero); box.addEventListener('mouseover', () => hover = true); box.addEventListener('mouseout', () => hover = false);
+  (function f(now) { requestAnimationFrame(f); const dt = Math.min(.05, (now - last) / 1000); last = now; if (!live) return; if (!hover && !reduced) rot += dt * (Math.PI * 2 / 160);
+    const W = hero.clientWidth, H = hero.clientHeight, mob = W < 640, rx = mob ? W * .43 : Math.min(W * .43, 660), ry = mob ? H * .43 : Math.min(H * .41, 380), cx = W / 2, cy = H / 2 - 10;
+    orbs.forEach((o, k) => { const a = -Math.PI / 2 + k * (Math.PI * 2 / n) + rot; o.style.transform = `translate(${cx + Math.cos(a) * rx}px, ${cy + Math.sin(a) * ry}px)`; }); })(last);
+  setTimeout(() => box.classList.add('on'), 400); }
+// the biggest congregations on pump.fun, ranked by holders, live
+async function pfTable() { const L = await PF, box = $('#pf'), more = $('#pfMore'); if (!L.length) { box.innerHTML = '<div class="f-empty">the chain is not answering right now.</div>'; return; }
+  const max = L[0].holders || 1; let shown = 0;
+  const row = (c, i) => `<div class="pr" data-cult="${esc(c.mint)}"><span class="n">${String(i + 1).padStart(2, '0')}</span>${pic(c)}<span class="t"><b>$${esc(c.symbol)}</b><small>${esc(c.name || '')}</small></span><span class="bar"><i style="width:${Math.max(3, (c.holders || 0) / max * 100)}%"></i><em>${nf(c.holders, 0)} holders</em></span><span class="mc">${usd(c.mcap)}</span><span class="ch">${ch(c.ch24) || '<span class="dim">—</span>'}</span></div>`;
+  const show = n => { const add = L.slice(shown, n); box.insertAdjacentHTML('beforeend', add.map((c, i) => row(c, shown + i)).join('')); const fresh = $$('.pr', box).slice(shown); shown = Math.min(n, L.length); more.hidden = shown >= L.length; more.textContent = `show all ${L.length}`;
+    if (window.gsap && !reduced) gsap.from(fresh.map(r => $('.bar i', r)), { scaleX: 0, duration: 1.4, ease: 'expo.out', stagger: .04, scrollTrigger: { trigger: fresh[0], start: 'top 90%' } }); };
+  show(15); more.onclick = () => { show(L.length); if (window.ScrollTrigger) ScrollTrigger.refresh(); }; if (window.ScrollTrigger) ScrollTrigger.refresh(); }
 
 // ---------------------------------------------------------------- census
 async function picks() { try { const L = await api('trending'); $('#picks').innerHTML = L.slice(0, 8).map(t => `<button class="pick" data-pick="${esc(t.mint)}">${icon(t)}${esc(t.symbol)}</button>`).join(''); } catch { } }

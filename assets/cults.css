@@ -88,6 +88,17 @@ section { position: relative; }
 .scroll-cue span { position: absolute; left: 0; top: -40%; width: 1px; height: 40%; background: var(--fg); animation: cue 2s cubic-bezier(.6, 0, .3, 1) infinite; }
 @keyframes cue { to { top: 110%; } }
 
+/* ---------------- the orbit: twelve real pump.fun coins round the mark */
+.orbit { position: absolute; inset: 0; pointer-events: none; }
+.orb { position: absolute; left: 0; top: 0; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; pointer-events: auto; opacity: 0; transition: opacity 1.2s; will-change: transform; }
+.orbit.on .orb { opacity: .9; }
+.orb img, .orb .ph { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; background: #161615; border: 1px solid #2a2a27; filter: grayscale(.85) brightness(.85); transition: filter .4s, transform .4s cubic-bezier(.2, .8, .2, 1), border-color .4s; }
+.orb.first img { border: 2px solid var(--g); filter: none; }
+.orb:hover img { filter: none; transform: scale(1.18); border-color: var(--fg); }
+.orb span { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 8px; font-size: 11px; color: var(--fg); white-space: nowrap; opacity: 0; transition: opacity .3s; }
+.orb:hover span, .orb.first span { opacity: 1; }
+.orb.first span { color: var(--g); }
+
 /* ---------------- manifesto */
 .manifesto { min-height: 100vh; display: grid; place-items: center; padding: 0 16px; }
 .m-inner { display: flex; flex-direction: column; gap: 6px; max-width: 1100px; }
@@ -138,6 +149,23 @@ h3 { font: 700 22px/1.1 var(--disp); letter-spacing: -.01em; }
 .fr b { font-weight: 600; font-size: 14px; }
 .fr span { font-size: 12px; color: var(--dim); }
 .f-empty { text-align: center; color: var(--dim); font-size: 13px; padding: 20px; }
+
+/* ---------------- the biggest congregations, ranked */
+.pf { max-width: 1060px; margin: 0 auto 70px; padding: 0 16px; display: flex; flex-direction: column; gap: 6px; }
+.pr { display: grid; grid-template-columns: 40px 44px 1.2fr 2.2fr 100px 70px; align-items: center; gap: 14px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 14px; background: #080808; cursor: pointer; text-align: left; transition: border-color .25s, background .25s, transform .35s cubic-bezier(.2, .8, .2, 1); }
+.pr:hover { border-color: #3a3a37; background: #0e0e0d; transform: translateX(4px); }
+.pr .n { font-size: 12px; color: var(--dim); }
+.pr img, .pr .ph { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #1a1a18; display: block; }
+.pr .t b { display: block; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr .t small { display: block; font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr .bar { position: relative; height: 26px; border-radius: 8px; background: #121211; overflow: hidden; }
+.pr .bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #2a2a27, #f2f2ee); border-radius: 8px; transform-origin: 0 50%; }
+.pr:first-child .bar i { background: linear-gradient(90deg, #1b5e3b, var(--g)); }
+.pr .bar em { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font: 600 12px/1 var(--mono); font-style: normal; color: #000; mix-blend-mode: difference; filter: invert(1); }
+.pr .mc { font-size: 12px; color: var(--dim); text-align: right; }
+.pr .ch { font-size: 12px; text-align: right; }
+.unsworn { display: flex; flex-direction: column; gap: 6px; margin-top: 18px; text-align: left; }
+.unsworn .pr { grid-template-columns: 44px 1.4fr 1fr auto; }
 
 /* ---------------- rites */
 .rites { padding-top: 120px; }
@@ -293,6 +321,7 @@ details p { color: var(--dim); padding: 0 4px 22px; font-size: 14px; max-width: 
 /* ---------------- small screens */
 @media (max-width: 900px) {
   .links { display: none; }
+  .pr { grid-template-columns: 30px 36px 1fr 1.4fr 60px; gap: 10px; } .pr .mc { display: none; } .pr img, .pr .ph { width: 36px; height: 36px; }
   .f-grid { grid-template-columns: repeat(3, 1fr); }
   .vow-grid, .bless-grid { grid-template-columns: 1fr; }
   .vow-card-wrap { position: static; }
@@ -317,6 +346,8 @@ details p { color: var(--dim); padding: 0 4px 22px; font-size: 14px; max-width: 
   .hero-mark { margin-bottom: 8px; }
   .cult-in { margin: 0; border-radius: 0; padding: 60px 16px 50px; min-height: 100%; }
   .search { flex-direction: column; }
+  .orb { width: 36px; height: 36px; margin: -18px 0 0 -18px; } .orbit.on .orb { opacity: .55; } .orb span { display: none; }
+  .pr { grid-template-columns: 26px 32px 1fr 1fr; } .pr .ch { display: none; } .pr img, .pr .ph { width: 32px; height: 32px; } .unsworn .pr { grid-template-columns: 32px 1fr auto; } .unsworn .pr .mc { display: none; }
   .f-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .fc .pic { width: 72px; height: 72px; }
   .faiths { padding: 96px 0 80px; }
