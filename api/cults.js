@@ -164,6 +164,12 @@ const img = u => { u = String(u || ''); let url; try { url = new URL(u); } catch
   return memo('img:' + (cid || url.href), 86400e3, async () => { for (const t of tries) { try { const r = await fetch(t, { signal: AbortSignal.timeout(8000) }), type = r.headers.get('content-type') || '';
       if (r.ok && /^image\//.test(type)) { const buf = Buffer.from(await r.arrayBuffer()); if (buf.length && buf.length < 4e6) return { type, buf }; } } catch { } }
     throw new Error('that image is not reachable right now'); }); };
+// the biggest pump.fun congregations right now: every pump.fun coin on Jupiter's trending, traded and organic lists (1h, 6h, 24h) plus the old faiths, by holders
+const pumpfun = () => memo('pumpfun', 300e3, async () => { const seen = new Map(), urls = ['toptrending', 'toptraded', 'toporganicscore'].flatMap(k => ['1h', '6h', '24h'].map(iv => `${JUP}/tokens/v2/${k}/${iv}?limit=100`));
+  const lists = await Promise.all(urls.map(u => getJ(u, 9000).catch(() => [])));
+  for (const j of lists) for (const t of j || []) if ((/pump/i.test(t.launchpad || '') || /pump$/.test(t.id)) && t.holderCount >= 300 && !seen.has(t.id)) seen.set(t.id, coinRow(t));
+  for (const h of await hall().catch(() => [])) if (!seen.has(h.mint)) seen.set(h.mint, h);
+  return [...seen.values()].sort((a, b) => (b.holders || 0) - (a.holders || 0)).slice(0, 72); });
 const ping = () => memo('ping', 4000, async () => { const t0 = Date.now(), slot = await conn.getSlot('confirmed'); return { slot, ms: Date.now() - t0, rpc: process.env.RPC_URL ? 'custom' : 'public', tag: TAG58, at: Date.now() }; });
 
 // ---------------------------------------------------------------- the transactions the believer and the blesser sign in their own wallets
@@ -212,6 +218,7 @@ module.exports = async (req, res) => {
       if (a === 'me') return out(res, 200, await me(q.w, fresh), 'no-store');
       if (a === 'holdings') return out(res, 200, await holdings(q.w), 'no-store');
       if (a === 'trending') return out(res, 200, await trending(), 'public, max-age=60, s-maxage=180, stale-while-revalidate=600');
+      if (a === 'pumpfun') return out(res, 200, await pumpfun(), 'public, max-age=120, s-maxage=300, stale-while-revalidate=1800');
       if (a === 'hall') return out(res, 200, await hall(), 'public, max-age=300, s-maxage=600, stale-while-revalidate=3600');
       if (a === 'img') { const im = await img(q.u); res.statusCode = 200; res.setHeader('content-type', im.type); res.setHeader('access-control-allow-origin', '*'); res.setHeader('cache-control', 'public, max-age=86400, s-maxage=2592000, immutable'); return res.end(im.buf); }
       if (a === 'sim') return out(res, 200, await sim(q), 'public, max-age=15, s-maxage=30');
