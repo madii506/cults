@@ -123,7 +123,7 @@ function cultOf(mint, J) { const mi = J.sup[mint], sup = Number(mi.supply) || 1,
     list: [...faithful, ...apostates.sort((a, b) => b.since - a.since)],
     vowList: V.slice().sort((a, b) => b.at - a.at).map(v => ({ sig: v.sig, at: v.at, w: v.w, amount: v.amount, ui: ui(v.amount, mi.decimals), share: Number(BigInt(v.amount)) / sup, days: v.days, ends: v.ends, ...v.verdict })),
     blessList: B.map(b => ({ sig: b.sig, at: b.at, w: b.w, sol: b.lamports / 1e9, to: b.to.length, part: b.part, id: b.id })) }; }
-const coinsOf = async mints => { const info = await jupInfo(mints), o = {}; for (const m of mints) { const i = info[m] || {}; o[m] = { symbol: i.symbol || null, name: i.name || null, icon: i.icon || null, mcap: i.mcap ?? null }; } return o; };
+const coinsOf = async mints => { const info = await jupInfo(mints), o = {}; for (const m of mints) { const i = info[m] || {}; o[m] = { symbol: i.symbol || null, name: i.name || null, icon: i.icon || null, mcap: i.mcap ?? null, holders: i.holders ?? null, ch24: i.ch24 ?? null }; } return o; };
 
 async function cult(m, fresh) { const mint = pk(m, 'that is not a mint address').toBase58(), J = await judged(fresh); const coin = (await coinsOf([mint]))[mint];
   if (!J.sup[mint]) { const mi = await mintInfo(mint); return { mint, coin, decimals: mi.decimals, supply: mi.supply, believers: 0, members: 0, faithful: 0, apostates: 0, sworn: 0, faith: 0, kept: 0, vows: 0, blessed: 0, blessings: 0, prophet: null, first: null, last: null, list: [], vowList: [], blessList: [], at: Date.now() }; }
@@ -148,12 +148,20 @@ async function holdings(w) { const owner = pk(w), o = [];
   for (const prog of [TOKEN, T22]) { const L = await conn.getParsedTokenAccountsByOwner(owner, { programId: new PublicKey(prog) }); for (const a of L.value) { const i = a.account.data.parsed.info; if (+i.tokenAmount.amount > 0 && i.mint !== SOL) o.push({ mint: i.mint, amount: i.tokenAmount.amount, ui: +i.tokenAmount.uiAmountString, decimals: i.tokenAmount.decimals }); } }
   const info = await jupInfo(o.map(x => x.mint)); o.forEach(x => { const j = info[x.mint] || {}; x.symbol = j.symbol || null; x.name = j.name || null; x.icon = j.icon || null; x.usd = j.usd != null ? j.usd * x.ui : null; });
   return o.sort((a, b) => (b.usd || 0) - (a.usd || 0) || b.ui - a.ui).slice(0, 60); }
-const trending = () => memo('trend', 300e3, async () => { const j = await getJ(`${JUP}/tokens/v2/toptrending/1h?limit=80`).catch(() => []);
-  return (j || []).filter(t => /pump/i.test(t.launchpad || '') && t.holderCount >= 100).slice(0, 8).map(t => ({ mint: t.id, symbol: t.symbol, icon: t.icon || null, holders: t.holderCount })); });
+const coinRow = t => { const s = t.stats24h || {}; return { mint: t.id, symbol: t.symbol, name: t.name, icon: t.icon || null, holders: t.holderCount ?? null, mcap: t.mcap ?? t.fdv ?? null, ch24: s.priceChange ?? null, launchpad: t.launchpad || null }; };
+// pump.fun coins rising right now, from Jupiter's trending lists
+const trending = () => memo('trend', 180e3, async () => { const seen = new Set(), L = [];
+  for (const iv of ['1h', '6h', '24h']) { const j = await getJ(`${JUP}/tokens/v2/toptrending/${iv}?limit=100`).catch(() => []); for (const t of j || []) if (/pump/i.test(t.launchpad || '') && t.holderCount >= 100 && !seen.has(t.id)) { seen.add(t.id); L.push(coinRow(t)); } if (L.length >= 24) break; }
+  return L.slice(0, 24); });
+// the old faiths: pump.fun coins that grew the biggest congregations, each checked against Jupiter on every read (a mint Jupiter does not know is left out)
+const HALL = ['9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump', '2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump', 'CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump', 'GJAFwWjJ3vnTsrQVabjBVK2TYB1YtRCQXRDfDgUnpump', 'Df6yfrKC8kZE3KNkrHERKzAetSxbrWeniQfyJY4Jpump', 'ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY', '3B5wuUrMEi5yATD7on46hKfej3pfmd7t1RKgrsN3pump', 'A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump', 'FtUEW73K6vEYHfbkfpdBZfWpxgQar2HipGdbutEhpump', 'eL5fUxj2J4CiQsmW85k5FG9DvuQjjUoBHoQBi2Kpump'].concat((process.env.CULTS_HALL || '').split(',').filter(Boolean));
+const hall = () => memo('hall', 600e3, async () => { const mints = [...new Set(HALL.map(okKey).filter(Boolean))], o = [];
+  for (let i = 0; i < mints.length; i += 90) { const j = await getJ(`${JUP}/tokens/v2/search?query=${mints.slice(i, i + 90).join(',')}`).catch(() => []); for (const t of j || []) if (t.holderCount) o.push(coinRow(t)); }
+  return o.sort((a, b) => (b.holders || 0) - (a.holders || 0)); });
 const ping = () => memo('ping', 4000, async () => { const t0 = Date.now(), slot = await conn.getSlot('confirmed'); return { slot, ms: Date.now() - t0, rpc: process.env.RPC_URL ? 'custom' : 'public', tag: TAG58, at: Date.now() }; });
 
 // ---------------------------------------------------------------- the transactions the believer and the blesser sign in their own wallets
-const CU = { vow: 40000, bless: 60000 }, PRICE = 20000;
+const CU = { vow: 90000, bless: 110000 }, PRICE = 20000;   // memo v2 with a signer costs ~40k on mainnet (measured 2026-11-12)
 async function vowTx(b, bh) { const from = pk(b.from, 'connect a wallet first'), mint = pk(b.mint, 'that is not a mint address'), days = +b.days, M = mint.toBase58();
   if (!Number.isInteger(days) || days < 1 || days > 365) throw new Error('a vow lasts 1 to 365 days'); if (M === SOL) throw new Error('SOL is not a cult'); const mi = await mintInfo(M);
   const have = (await conn.getParsedTokenAccountsByOwner(from, { mint })).value.reduce((s, a) => s + BigInt(a.account.data.parsed.info.tokenAmount.amount), 0n);
@@ -197,7 +205,8 @@ module.exports = async (req, res) => {
       if (a === 'log') return out(res, 200, await log(fresh), fresh ? 'no-store' : 'public, max-age=8, s-maxage=12, stale-while-revalidate=60');
       if (a === 'me') return out(res, 200, await me(q.w, fresh), 'no-store');
       if (a === 'holdings') return out(res, 200, await holdings(q.w), 'no-store');
-      if (a === 'trending') return out(res, 200, await trending(), 'public, max-age=60, s-maxage=300');
+      if (a === 'trending') return out(res, 200, await trending(), 'public, max-age=60, s-maxage=180, stale-while-revalidate=600');
+      if (a === 'hall') return out(res, 200, await hall(), 'public, max-age=300, s-maxage=600, stale-while-revalidate=3600');
       if (a === 'sim') return out(res, 200, await sim(q), 'public, max-age=15, s-maxage=30');
       return out(res, 400, { error: 'unknown action' });
     }
