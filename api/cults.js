@@ -157,6 +157,7 @@ const trending = () => memo('trend', 180e3, async () => { const seen = new Set()
 const HALL = ['9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump', '2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump', 'CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump', 'GJAFwWjJ3vnTsrQVabjBVK2TYB1YtRCQXRDfDgUnpump', 'Df6yfrKC8kZE3KNkrHERKzAetSxbrWeniQfyJY4Jpump', 'ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY', '3B5wuUrMEi5yATD7on46hKfej3pfmd7t1RKgrsN3pump', 'A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump', 'FtUEW73K6vEYHfbkfpdBZfWpxgQar2HipGdbutEhpump', 'eL5fUxj2J4CiQsmW85k5FG9DvuQjjUoBHoQBi2Kpump'].concat((process.env.CULTS_HALL || '').split(',').filter(Boolean));
 const hall = () => memo('hall', 600e3, async () => { const mints = [...new Set(HALL.map(okKey).filter(Boolean))], o = [];
   for (let i = 0; i < mints.length; i += 90) { const j = await getJ(`${JUP}/tokens/v2/search?query=${mints.slice(i, i + 90).join(',')}`).catch(() => []); for (const t of j || []) if (t.holderCount) o.push(coinRow(t)); }
+  if (!o.length) throw new Error('jupiter did not answer. try again in a minute');   // never cache an empty hall
   return o.sort((a, b) => (b.holders || 0) - (a.holders || 0)); });
 // coin images through one fast door: IPFS links go to pump.fun's own gateway first, everything is cached at the edge for a month
 const img = u => { u = String(u || ''); let url; try { url = new URL(u); } catch { throw new Error('not an image link'); } if (!/^https?:$/.test(url.protocol) || /^(localhost|127\.|10\.|192\.168\.|169\.254\.|\[)/.test(url.hostname)) throw new Error('not an image link');
@@ -166,9 +167,10 @@ const img = u => { u = String(u || ''); let url; try { url = new URL(u); } catch
     throw new Error('that image is not reachable right now'); }); };
 // the biggest pump.fun congregations right now: every pump.fun coin on Jupiter's trending, traded and organic lists (1h, 6h, 24h) plus the old faiths, by holders
 const pumpfun = () => memo('pumpfun', 300e3, async () => { const seen = new Map(), urls = ['toptrending', 'toptraded', 'toporganicscore'].flatMap(k => ['1h', '6h', '24h'].map(iv => `${JUP}/tokens/v2/${k}/${iv}?limit=100`));
-  const lists = await Promise.all(urls.map(u => getJ(u, 9000).catch(() => [])));
+  const H = await hall().catch(() => []), lists = []; for (let i = 0; i < urls.length; i += 3) lists.push(...await Promise.all(urls.slice(i, i + 3).map(u => getJ(u, 9000).catch(() => []))));   // three at a time: Jupiter rate-limits bursts
   for (const j of lists) for (const t of j || []) if ((/pump/i.test(t.launchpad || '') || /pump$/.test(t.id)) && t.holderCount >= 300 && !seen.has(t.id)) seen.set(t.id, coinRow(t));
-  for (const h of await hall().catch(() => [])) if (!seen.has(h.mint)) seen.set(h.mint, h);
+  for (const h of H) seen.set(h.mint, h);
+  if (seen.size < 12) throw new Error('jupiter did not answer. try again in a minute');
   return [...seen.values()].sort((a, b) => (b.holders || 0) - (a.holders || 0)).slice(0, 72); });
 const ping = () => memo('ping', 4000, async () => { const t0 = Date.now(), slot = await conn.getSlot('confirmed'); return { slot, ms: Date.now() - t0, rpc: process.env.RPC_URL ? 'custom' : 'public', tag: TAG58, at: Date.now() }; });
 
