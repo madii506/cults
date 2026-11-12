@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cults · every coin is a cult.</title>
+<meta name="description" content="Cults turns any Solana coin into a cult: vows signed on-chain, ranks earned by holding, blessings to the faithful, and a wall for the apostates.">
+<meta name="theme-color" content="#050505">
+<meta property="og:title" content="Cults">
+<meta property="og:description" content="every coin is a cult.">
+<meta property="og:image" content="/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.png">
+<link rel="preload" href="/assets/fonts/interd-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jbmono.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/cults.css?v=1">
+</head>
+<body class="intro-on">
+
+<!-- the intro: a loader that is the mark itself, then the circle in 3D -->
+<div id="intro" aria-hidden="true">
+  <canvas id="introCanvas"></canvas>
+  <div class="intro-loader"><svg class="ring spin" viewBox="0 0 1000 1000" data-ring></svg></div>
+  <div class="intro-fade"></div>
+  <div class="intro-title"><h1>CULTS</h1><p>every coin is a cult.</p><button class="btn ghost" id="enter">enter</button></div>
+  <button class="intro-skip" id="skip">skip <span>›</span></button>
+</div>
+
+<div class="grain"></div>
+
+<nav id="nav">
+  <a class="brand" href="#top" data-go="top"><svg class="ring" viewBox="0 0 1000 1000" data-ring data-progress></svg><span>cults</span></a>
+  <div class="links"><a href="#rites" data-go="rites">rites</a><a href="#census" data-go="census">census</a><a href="#vow" data-go="vow">vow</a><a href="#board" data-go="board">board</a><a href="#wall" data-go="wall">wall</a><a href="#bless" data-go="bless">bless</a></div>
+  <button class="btn sm" id="connect">connect</button>
+</nav>
+
+<main id="top">
+  <section class="hero" id="hero">
+    <div class="hero-copy">
+      <svg class="ring hero-mark" viewBox="0 0 1000 1000" data-ring id="heroRing"></svg>
+      <h1 class="word" aria-label="cults"><span>C</span><span>U</span><span>L</span><span>T</span><span>S</span></h1>
+      <p class="sub">every coin is a cult.</p>
+      <div class="row"><a class="btn" href="#vow" data-go="vow">take a vow</a><a class="btn ghost" href="#census" data-go="census">find your cult</a></div>
+    </div>
+    <div class="ticker" id="ticker"><div class="track"></div></div>
+    <div class="scroll-cue"><span></span></div>
+  </section>
+
+  <section class="manifesto" id="manifesto">
+    <div class="m-inner">
+      <p class="m-line">memes are back.</p>
+      <p class="m-line">communities are back.</p>
+      <p class="m-line">the coins that last were never just tokens.</p>
+      <p class="m-line big">they were cults.</p>
+      <p class="m-line g">so we built the tech.</p>
+    </div>
+  </section>
+
+  <section class="rites" id="rites">
+    <div class="rites-head rv"><span class="kicker">the rites</span><h2>five rites. all on-chain.</h2></div>
+    <div class="rites-pin"><div class="rites-track">
+      <article class="rite"><div class="num">I</div><canvas data-rite="census"></canvas><h3>census</h3><p>every holder of any coin, read straight from the chain. the congregation, counted.</p></article>
+      <article class="rite"><div class="num">II</div><canvas data-rite="vow"></canvas><h3>vow</h3><p>swear to hold an amount for 7, 30, 90 or 365 days. you sign it. the chain keeps it.</p></article>
+      <article class="rite"><div class="num">III</div><canvas data-rite="rank"></canvas><h3>rank</h3><p>initiate, acolyte, zealot, elder. the twelve with the most faith form the circle. the first is the prophet.</p></article>
+      <article class="rite"><div class="num">IV</div><canvas data-rite="bless"></canvas><h3>blessing</h3><p>anyone can bless a cult. the SOL goes to the faithful, split by faith, in transactions everyone can see.</p></article>
+      <article class="rite"><div class="num">V</div><canvas data-rite="apostasy"></canvas><h3>apostasy</h3><p>hold less than you swore before the vow ends and your wallet is carved on the wall. forever.</p></article>
+    </div></div>
+  </section>
+
+  <section class="tool" id="census">
+    <div class="head rv"><span class="kicker">I · census</span><h2>count any congregation.</h2><p class="lead">paste a coin. every wallet holding it is read from the token program. pools and curves are left out.</p></div>
+    <form class="search rv" id="censusForm"><input id="censusMint" placeholder="paste a coin address" autocomplete="off" spellcheck="false"><button class="btn" type="submit">count</button></form>
+    <div class="picks rv" id="picks"></div>
+    <div class="census-out" id="censusOut" hidden>
+      <div class="cg"><canvas id="congCanvas"></canvas><div class="cg-mid" id="cgMid"></div></div>
+      <div class="stats" id="censusStats"></div>
+      <div class="row center"><a class="btn" id="openCult" href="#">open this cult</a></div>
+    </div>
+  </section>
+
+  <section class="tool" id="vow">
+    <div class="head rv"><span class="kicker">II · vow</span><h2>swear it.</h2><p class="lead">a vow is a promise written on-chain. cults never touches your coins. hold less than you swore before it ends and you are an apostate.</p></div>
+    <div class="vow-grid">
+      <div class="vow-form rv">
+        <div class="step"><span>1</span><div><b>your wallet</b><p id="vowWallet">not connected</p></div><button class="btn sm ghost" id="vowConnect">connect</button></div>
+        <div class="step"><span>2</span><div class="grow"><b>the coin</b><div class="coins" id="vowCoins"><p class="dim">connect to see what you hold, or paste a coin</p></div><input id="vowMint" placeholder="or paste a coin address" autocomplete="off" spellcheck="false"></div></div>
+        <div class="step"><span>3</span><div class="grow"><b>how much</b><div class="seg" id="vowPct"><button data-v="25">25%</button><button data-v="50">50%</button><button data-v="75">75%</button><button data-v="100" class="on">100%</button></div></div></div>
+        <div class="step"><span>4</span><div class="grow"><b>how long</b><div class="seg" id="vowDays"><button data-v="7">7 days</button><button data-v="30" class="on">30 days</button><button data-v="90">90 days</button><button data-v="365">365 days</button></div></div></div>
+        <button class="btn wide" id="vowSign" disabled>sign the vow</button>
+        <p class="note" id="vowNote">costs only the network fee. nothing leaves your wallet.</p>
+      </div>
+      <div class="vow-card-wrap rv"><canvas id="vowCard" width="1200" height="1500"></canvas><div class="row center"><button class="btn sm ghost" id="vowSave">save card</button><a class="btn sm ghost" id="vowShare" target="_blank" rel="noopener">share on 𝕏</a></div></div>
+    </div>
+    <div class="mine" id="mine" hidden><h3>your vows</h3><div id="mineList"></div></div>
+  </section>
+
+  <section class="ranks" id="ranks">
+    <div class="head rv"><span class="kicker">III · rank</span><h2>faith is time held.</h2><p class="lead">faith = the share of supply you swore × the days you kept it. ranks come from the longest vow you kept.</p></div>
+    <div class="ladder" id="ladder">
+      <div class="lv rv"><div class="bar"></div><b>initiate</b><span>took a vow</span></div>
+      <div class="lv rv"><div class="bar"></div><b>acolyte</b><span>7 days kept</span></div>
+      <div class="lv rv"><div class="bar"></div><b>zealot</b><span>30 days kept</span></div>
+      <div class="lv rv"><div class="bar"></div><b>elder</b><span>90 days kept</span></div>
+      <div class="lv rv twelve"><div class="bar"></div><b>the twelve</b><span>top 12 by faith</span></div>
+      <div class="lv rv prophet"><div class="bar"></div><b>the prophet</b><span>the most faith</span></div>
+    </div>
+    <p class="apo-line rv"><span class="x"></span> <b>apostate</b> broke a vow. no rank, no faith, no blessings.</p>
+  </section>
+
+  <section class="tool" id="board">
+    <div class="head rv"><span class="kicker">IV · board</span><h2>the faith board.</h2><p class="lead">every cult with at least one vow, ranked by total faith.</p></div>
+    <div class="totals rv" id="totals"></div>
+    <div class="table rv" id="boardTable"></div>
+  </section>
+
+  <section class="tool wall" id="wall">
+    <div class="head rv"><span class="kicker">V · apostasy</span><h2>the wall.</h2><p class="lead">every broken vow, carved in the order it broke. read from the chain, so nobody can wash it off.</p></div>
+    <div class="stones" id="stones"></div>
+  </section>
+
+  <section class="tool" id="bless">
+    <div class="head rv"><span class="kicker">blessing</span><h2>bless the faithful.</h2><p class="lead">for devs and believers: send SOL to a cult's faithful, split by faith. you sign every batch in your wallet. apostates get nothing.</p></div>
+    <div class="bless-grid rv">
+      <div class="bless-form">
+        <label>cult<input id="blessMint" placeholder="paste a coin address" autocomplete="off" spellcheck="false"></label>
+        <label>SOL<input id="blessSol" type="number" min="0.01" step="0.01" value="1"></label>
+        <button class="btn wide" id="blessGo">prepare the blessing</button>
+        <p class="note" id="blessNote">slices under 0.001 SOL are dropped and the rest re-split.</p>
+      </div>
+      <div class="bless-out" id="blessOut"><p class="dim">the split shows here before anything is signed.</p></div>
+    </div>
+  </section>
+
+  <section class="faq" id="faq">
+    <div class="head rv"><span class="kicker">the fine print</span><h2>questions.</h2></div>
+    <div class="qa rv">
+      <details><summary>does cults hold my coins?</summary><p>no. a vow is a memo transaction you sign. your coins never move and nothing is locked. the vow is a promise, and the chain is the witness.</p></details>
+      <details><summary>what breaks a vow?</summary><p>holding less than you swore at any moment before the vow ends: selling, sending to another wallet, or closing the account. it is read from your token account's own history. swearing more than you hold counts too.</p></details>
+      <details><summary>what happens when it ends?</summary><p>the vow is kept forever and its faith stays with you. you are free to sell. swear a new one to keep climbing.</p></details>
+      <details><summary>who can bless?</summary><p>anyone. most often the dev, from creator fees. the split is by faith, the transfers are public, and every batch carries a memo so the blessing shows on the cult's page.</p></details>
+      <details><summary>what does it cost?</summary><p>a vow costs the solana network fee, a fraction of a cent. cults takes nothing from vows or blessings.</p></details>
+      <details><summary>is there a database?</summary><p>no. every vow and blessing touches one public address, so the whole site is rebuilt from the chain on every read. anyone can check it.</p></details>
+      <details><summary>is this financial advice?</summary><p>no. memecoins can go to zero. a vow is a promise to yourself and your cult, not an investment.</p></details>
+    </div>
+  </section>
+
+  <section class="close" id="close">
+    <svg class="ring big" viewBox="0 0 1000 1000" data-ring id="closeRing"></svg>
+    <h2 class="rv">which cult are you in?</h2>
+    <div class="row center rv"><a class="btn" href="#vow" data-go="vow">take a vow</a><span id="links"></span></div>
+  </section>
+</main>
+
+<!-- a cult's own page -->
+<div id="cult" class="cult" hidden>
+  <div class="cult-in">
+    <button class="x-btn" id="cultClose" aria-label="close">×</button>
+    <div id="cultBody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/assets/vendor/lenis.min.js"></script>
+<script src="/assets/vendor/gsap.min.js"></script>
+<script src="/assets/vendor/ScrollTrigger.min.js"></script>
+<script src="/assets/app.js?v=1"></script>
+</body>
+</html>
