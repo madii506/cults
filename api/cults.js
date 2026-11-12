@@ -158,6 +158,12 @@ const HALL = ['9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump', '2qEHjDLDLbuBgRYvs
 const hall = () => memo('hall', 600e3, async () => { const mints = [...new Set(HALL.map(okKey).filter(Boolean))], o = [];
   for (let i = 0; i < mints.length; i += 90) { const j = await getJ(`${JUP}/tokens/v2/search?query=${mints.slice(i, i + 90).join(',')}`).catch(() => []); for (const t of j || []) if (t.holderCount) o.push(coinRow(t)); }
   return o.sort((a, b) => (b.holders || 0) - (a.holders || 0)); });
+// coin images through one fast door: IPFS links go to pump.fun's own gateway first, everything is cached at the edge for a month
+const img = u => { u = String(u || ''); let url; try { url = new URL(u); } catch { throw new Error('not an image link'); } if (!/^https?:$/.test(url.protocol) || /^(localhost|127\.|10\.|192\.168\.|169\.254\.|\[)/.test(url.hostname)) throw new Error('not an image link');
+  const cid = (/\/ipfs\/([A-Za-z0-9]{40,70}(?:\/[^?#]*)?)/.exec(url.pathname) || [])[1], tries = cid ? [`https://pump.mypinata.cloud/ipfs/${cid}`, `https://gateway.pinata.cloud/ipfs/${cid}`, `https://ipfs.io/ipfs/${cid}`, `https://dweb.link/ipfs/${cid}`] : [url.href];
+  return memo('img:' + (cid || url.href), 86400e3, async () => { for (const t of tries) { try { const r = await fetch(t, { signal: AbortSignal.timeout(8000) }), type = r.headers.get('content-type') || '';
+      if (r.ok && /^image\//.test(type)) { const buf = Buffer.from(await r.arrayBuffer()); if (buf.length && buf.length < 4e6) return { type, buf }; } } catch { } }
+    throw new Error('that image is not reachable right now'); }); };
 const ping = () => memo('ping', 4000, async () => { const t0 = Date.now(), slot = await conn.getSlot('confirmed'); return { slot, ms: Date.now() - t0, rpc: process.env.RPC_URL ? 'custom' : 'public', tag: TAG58, at: Date.now() }; });
 
 // ---------------------------------------------------------------- the transactions the believer and the blesser sign in their own wallets
@@ -207,6 +213,7 @@ module.exports = async (req, res) => {
       if (a === 'holdings') return out(res, 200, await holdings(q.w), 'no-store');
       if (a === 'trending') return out(res, 200, await trending(), 'public, max-age=60, s-maxage=180, stale-while-revalidate=600');
       if (a === 'hall') return out(res, 200, await hall(), 'public, max-age=300, s-maxage=600, stale-while-revalidate=3600');
+      if (a === 'img') { const im = await img(q.u); res.statusCode = 200; res.setHeader('content-type', im.type); res.setHeader('access-control-allow-origin', '*'); res.setHeader('cache-control', 'public, max-age=86400, s-maxage=2592000, immutable'); return res.end(im.buf); }
       if (a === 'sim') return out(res, 200, await sim(q), 'public, max-age=15, s-maxage=30');
       return out(res, 400, { error: 'unknown action' });
     }
