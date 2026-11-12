@@ -1,0 +1,16 @@
+{
+  "name": "Cults",
+  "ticker": "CULTS",
+  "tag": "8J6D488rtDnXUoETwwv8pDXRHmHW1iNkpv2JPDqMtm2z",
+  "ca": null,
+  "x": null,
+  "days": [7, 30, 90, 365],
+  "ranks": [
+    { "id": "initiate", "name": "initiate", "days": 0 },
+    { "id": "acolyte", "name": "acolyte", "days": 7 },
+    { "id": "zealot", "name": "zealot", "days": 30 },
+    { "id": "elder", "name": "elder", "days": 90 }
+  ],
+  "minSol": 0.001,
+  "perTx": 18
+}
