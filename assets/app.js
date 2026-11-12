@@ -157,7 +157,7 @@ async function orbit() { const L = (await PF).slice(0, 12), box = $('#orbit'), h
   const orbs = $$('.orb', box), n = orbs.length; let rot = 0, last = performance.now(), live = true, hover = false;
   new IntersectionObserver(e => live = e[0].isIntersecting).observe(hero); box.addEventListener('mouseover', () => hover = true); box.addEventListener('mouseout', () => hover = false);
   (function f(now) { requestAnimationFrame(f); const dt = Math.min(.05, (now - last) / 1000); last = now; if (!live) return; if (!hover && !reduced) rot += dt * (Math.PI * 2 / 160);
-    const W = hero.clientWidth, H = hero.clientHeight, mob = W < 640, rx = mob ? W * .43 : Math.min(W * .43, 660), ry = mob ? H * .43 : Math.min(H * .41, 380), cx = W / 2, cy = H / 2 - 10;
+    const W = hero.clientWidth, H = hero.clientHeight, mob = W < 640, rx = mob ? W * .43 : Math.min(W * .43, 660), ry = mob ? H * .38 : Math.min(H * .36, 340), cx = W / 2, cy = H / 2 + 6;
     orbs.forEach((o, k) => { const a = -Math.PI / 2 + k * (Math.PI * 2 / n) + rot; o.style.transform = `translate(${cx + Math.cos(a) * rx}px, ${cy + Math.sin(a) * ry}px)`; }); })(last);
   setTimeout(() => box.classList.add('on'), 400); }
 // the biggest congregations on pump.fun, ranked by holders, live
